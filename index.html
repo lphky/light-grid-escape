@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-Hant-HK">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050816">
+  <meta name="description" content="光格突圍：控制光能機械人走過 LED 光格密室，收集能量、避開紅格、逐關突圍。">
+  <title>光格突圍｜LED 光格密室闖關</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <noscript>此遊戲需要啟用 JavaScript。</noscript>
+
+  <section id="screen-home" class="screen home" aria-labelledby="home-title">
+    <div class="home-card">
+      <div class="logo-grid" aria-hidden="true">
+        <i class="g"></i><i></i><i class="b"></i><i></i>
+        <i></i><i class="r"></i><i></i><i class="a"></i>
+        <i class="b"></i><i></i><i class="r"></i><i></i>
+        <i></i><i class="a"></i><i></i><i class="x"></i>
+      </div>
+      <p class="eyebrow">LED 光格密室闖關</p>
+      <h1 id="home-title">光格突圍</h1>
+      <p class="tagline">看清燈號、找出路線、抓準時機。<br>收集藍色能量，避開紅格，打開出口！</p>
+      <button id="btn-start" class="btn primary big" type="button">開始闖關</button>
+      <p id="home-progress" class="home-progress"></p>
+      <div class="home-links">
+        <button id="btn-levels" class="btn ghost" type="button">關卡選擇</button>
+        <button id="btn-help" class="btn ghost" type="button">玩法說明</button>
+        <button id="btn-settings" class="btn ghost" type="button">設定</button>
+      </div>
+      <p id="storage-warning" class="storage-warning" hidden>瀏覽器未能保存進度，本次仍可遊玩，但關閉頁面後進度會消失。</p>
+    </div>
+  </section>
+
+  <section id="screen-levels" class="screen levels" hidden aria-labelledby="levels-title">
+    <header class="top-bar">
+      <button class="btn icon" type="button" data-nav="home" aria-label="返回首頁">←</button>
+      <h2 id="levels-title">關卡選擇</h2>
+      <span class="spacer"></span>
+    </header>
+    <div class="mode-switch" role="radiogroup" aria-label="遊玩模式">
+      <button type="button" role="radio" aria-checked="true" data-mode="normal">闖關</button>
+      <button type="button" role="radio" aria-checked="false" data-mode="practice">練習（不限時）</button>
+    </div>
+    <p id="mode-note" class="mode-note"></p>
+    <div id="level-grid" class="level-grid"></div>
+  </section>
+
+  <section id="screen-game" class="screen game" hidden aria-label="遊戲">
+    <header class="hud">
+      <div class="hud-level"><span id="hud-zone" class="hud-zone"></span><strong id="hud-level"></strong></div>
+      <div class="hud-stats">
+        <span class="hud-time" id="hud-time" aria-label="剩餘時間"></span>
+        <span class="hud-lives" id="hud-lives" aria-label="生命"></span>
+      </div>
+      <div class="hud-buttons">
+        <button id="btn-sound" class="btn icon" type="button" aria-label="聲音開關">♪</button>
+        <button id="btn-pause" class="btn icon" type="button" aria-label="暫停">❚❚</button>
+      </div>
+    </header>
+    <div class="game-main" id="game-main">
+      <div class="board-wrap" id="board-wrap">
+        <canvas id="board" aria-label="遊戲地板" role="img"></canvas>
+        <div id="banner" class="banner" role="status" aria-live="polite"></div>
+        <div id="countdown" class="countdown" aria-hidden="true"></div>
+      </div>
+      <div class="status-row">
+        <span id="hud-energy" class="chip energy-chip"></span>
+        <span id="hud-mode" class="chip mode-chip" hidden></span>
+        <span id="hud-dash" class="chip dash-chip" hidden></span>
+        <span class="kbd-hint">方向鍵／WASD 移動 · Space 衝刺 · Esc 暫停</span>
+      </div>
+      <div class="dpad" id="dpad" aria-label="方向控制" role="group">
+        <span class="arrow up" data-dir="up">▲</span>
+        <span class="arrow left" data-dir="left">◀</span>
+        <span class="arrow right" data-dir="right">▶</span>
+        <span class="arrow down" data-dir="down">▼</span>
+      </div>
+      <button id="btn-dash" class="dash-btn" type="button" aria-label="衝刺">
+        <span class="dash-ring"></span><span class="dash-label">衝刺</span>
+      </button>
+    </div>
+  </section>
+
+  <div id="ov-intro" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="intro-title">
+    <div class="panel">
+      <p id="intro-zone" class="eyebrow"></p>
+      <h2 id="intro-title"></h2>
+      <p id="intro-badges" class="badges"></p>
+      <p id="intro-goal" class="lead"></p>
+      <p id="intro-text"></p>
+      <div id="intro-legend" class="legend"></div>
+      <ul id="intro-facts" class="facts"></ul>
+      <div class="actions">
+        <button id="btn-intro-go" class="btn primary" type="button">開始</button>
+        <button id="btn-intro-back" class="btn ghost" type="button">關卡選擇</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ov-pause" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="panel small">
+      <h2 id="pause-title">已暫停</h2>
+      <p class="muted">繼續後會倒數三秒。</p>
+      <div class="actions column">
+        <button id="btn-resume" class="btn primary" type="button">繼續</button>
+        <button id="btn-restart" class="btn" type="button">重新開始本關</button>
+        <button id="btn-pause-settings" class="btn" type="button">設定</button>
+        <button id="btn-pause-help" class="btn" type="button">玩法說明</button>
+        <button id="btn-quit" class="btn ghost" type="button">返回關卡選擇</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ov-result" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="result-title">
+    <div class="panel">
+      <h2 id="result-title"></h2>
+      <div id="result-stars" class="stars-big" aria-hidden="true"></div>
+      <div id="result-body"></div>
+      <div id="result-actions" class="actions"></div>
+    </div>
+  </div>
+
+  <div id="ov-help" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="panel scroll">
+      <h2 id="help-title">玩法說明</h2>
+      <p class="lead">控制光能機械人走過地板，收集全部藍色能量，出口開啟後走進出口就過關。</p>
+      <div id="help-legend" class="legend"></div>
+      <h3>操作</h3>
+      <ul class="facts">
+        <li><b>電腦：</b>方向鍵或 WASD 移動，按住可連續走；Space 衝刺；Esc 暫停。</li>
+        <li><b>手機／平板：</b>用方向盤移動（手指可滑動轉向），右下角按鈕衝刺；設定可改為左手操作。</li>
+        <li><b>衝刺（第四關起）：</b>向前衝兩格，冷卻三秒。沿途每格都會判定，沒有無敵效果。</li>
+      </ul>
+      <h3>規則</h3>
+      <ul class="facts">
+        <li>每關三格生命。踩到紅格扣一格，之後有一秒保護；仍停在紅格會再受傷。</li>
+        <li>生命用完或時間用完即失敗，可以立即重試。</li>
+        <li>琥珀色斜紋一定先出現，之後才變紅。綠色盾牌格永遠安全。</li>
+        <li>剛收集能量的那一格，在你離開前不會變紅。</li>
+        <li>出口開啟後機關仍然運作，要安全走到出口。</li>
+        <li>第十二關分三段，段與段之間有兩秒安全時間，地板會先顯示下一段的燈號。</li>
+      </ul>
+      <h3>評分</h3>
+      <ul class="facts">
+        <li>★ 成功逃出；★★ 受傷不多於一次；★★★ 無傷並在該關挑戰時間內完成。</li>
+        <li>分數＝能量×100＋剩餘生命×200＋剩餘整秒×10。</li>
+        <li>練習模式不限時，不計分；輔助模式成績另行記錄，同樣可解鎖下一關。</li>
+      </ul>
+      <div class="actions">
+        <button class="btn primary" type="button" data-close>明白了</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ov-settings" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="panel scroll">
+      <h2 id="settings-title">設定</h2>
+      <label class="toggle"><input type="checkbox" data-setting="music"><span><b>背景音樂</b></span></label>
+      <label class="toggle"><input type="checkbox" data-setting="sfx"><span><b>音效</b></span></label>
+      <label class="toggle"><input type="checkbox" data-setting="assist"><span><b>輔助模式</b><small>機關速度降至 75%，預警時間更長，隱藏能量一直顯示。成績另行記錄，下一局開始生效。</small></span></label>
+      <label class="toggle"><input type="checkbox" data-setting="reducedMotion"><span><b>減少動態效果</b><small>關閉光暈、殘影及脈動動畫。</small></span></label>
+      <label class="toggle"><input type="checkbox" data-setting="leftHanded"><span><b>左手操作</b><small>手機方向盤移到右邊，衝刺鍵移到左邊。</small></span></label>
+      <div class="danger-zone">
+        <button id="btn-clear" class="btn danger" type="button">清除全部進度</button>
+      </div>
+      <div class="actions">
+        <button class="btn primary" type="button" data-close>完成</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ov-confirm" class="overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="panel small">
+      <h2 id="confirm-title">清除全部進度？</h2>
+      <p>已解鎖關卡、星等、最佳紀錄及設定都會刪除，無法復原。</p>
+      <div class="actions">
+        <button id="btn-confirm-clear" class="btn danger" type="button">確定清除</button>
+        <button class="btn ghost" type="button" data-close>取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/app.mjs"></script>
+</body>
+</html>
